@@ -204,7 +204,6 @@ def clear_sudoku(sudoku, sudoku_draw):
             sudoku_draw[i][j] = Number(0, 12 + 0 * 60, 12 + 0 * 60, Sudoku_draw[posicionx][posiciony].font)
     print_actual_sudoku(sudoku, sudoku_draw)
 
-
 def redrawGameWindow():
     win.blit(board, (5,5))
     drawfocus(win, 12 + posicionx * 60, 12 + posiciony * 60)
@@ -216,6 +215,9 @@ def redrawGameWindow():
 
     Button_Solve.draw(win, (255, 255, 255))
     Button_clear_sudoku.draw(win, (255, 255, 255))
+
+    win.blit(tiempo.render(f"time:{horas}:{minutos}:{segundos}", True, (255, 255, 255)), (400, 555))
+
     pygame.display.update()
 
 # Creamos el tablero de sudoku
@@ -298,21 +300,37 @@ for _ in range(1):
 
 gaming = True
 
+#Creamos una nueva fuente para colocar el tiempo
+timer = pygame.time.set_timer(pygame.USEREVENT, 1000)
+segundos, minutos, horas = 0, 0, 0
+tiempo = pygame.font.SysFont('Arial', 25, True)
 
 while gaming:
-    clock.tick(27)
+    win.fill((0, 70, 94))
+    clock.tick(30)
     for eventos in pygame.event.get():
         pos = pygame.mouse.get_pos()        
         if eventos.type == QUIT:
             gaming = False
         
+        # Chequeamos el timer
+        if eventos.type == pygame.USEREVENT:
+            segundos += 1
+            if segundos == 60:
+                minutos += 1
+                segundos = 0
+            if minutos == 60:
+                horas += 1
+                minutos = 0
+            
         # Chequeamos si se clickeo el boton
         if eventos.type == pygame.MOUSEBUTTONDOWN:
             if Button_Solve.isOver(pos):
                 solve_sudoku(Sudoku, Sudoku_draw)
             if Button_clear_sudoku.isOver(pos):
                 clear_sudoku(Sudoku, Sudoku_draw)
-            
+                segundos, minutos, horas = 0, 0, 0
+
         if eventos.type == pygame.MOUSEMOTION:
             Button_Solve.color = (255, 168, 173) if Button_Solve.isOver(pos) else (166, 168, 173) 
             Button_clear_sudoku.color = (255, 168, 173) if Button_clear_sudoku.isOver(pos) else (166, 168, 173)
