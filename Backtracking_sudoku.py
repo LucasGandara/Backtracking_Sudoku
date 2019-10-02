@@ -1,5 +1,6 @@
 import pygame
 from pygame.locals import QUIT, RLEACCEL, K_UP, K_DOWN, K_LEFT, K_RIGHT, K_1, K_2, K_3, K_4, K_5, K_6, K_7, K_8, K_9, K_KP0, K_KP1, K_KP2, K_KP3, K_KP4, K_KP5, K_KP6, K_KP7, K_KP8, K_KP9, K_BACKSPACE
+from random import randrange
 pygame.init()
 pygame.font.init()
 
@@ -7,7 +8,7 @@ from os import path
 """ Variables """
 # Tamaño de la ventana
 Width  = 550
-Height = 600
+Height = 650
 
 # Creamos la ventana
 win = pygame.display.set_mode((Width,Height))
@@ -52,6 +53,7 @@ class Button(object):
         self.height = height
         self.text = text
         self.thickness = 2
+        self.fonsize = 30
 
     def draw(self, win, outline = None):
         if outline:
@@ -60,7 +62,7 @@ class Button(object):
         pygame.draw.rect(win, self.color ,(self.x, self.y, self.width, self.height), 0)
 
         if self.text != '':
-            font = pygame.font.SysFont('Arial', 30)
+            font = pygame.font.SysFont('Arial', self.fonsize)
             text = font.render(self.text, 1, (0, 0, 0))
             win.blit(text, (self.x + (self.width / 2 - text.get_width() / 2) - 4, self.y + (self.height / 2 - text.get_height() / 2)))
     
@@ -72,7 +74,12 @@ class Button(object):
 
 # Creamos los botones que necesitaremos
 Button_Solve = Button((166, 168, 173), 12, 550, 130, 40, ' Resolver')
-Button_clear_sudoku = Button((166, 168, 173), 160, 550, 160, 40, ' Borrar Todo')
+Button_clear_sudoku = Button((166, 168, 173), 160, 600, 160, 40, ' Borrar Todo')
+Button_sbs = Button((166, 168, 173), 12, 600, 130, 40, 'Steps Off')
+Button_generate = Button((166, 168, 172), 160, 550, 160, 40, 'Generar Nuevo'); Button_generate.fonsize = 15; Button_generate.height = 15
+Button_facil = Button((166, 168, 172), 160, 575,  50, 15, '  Facil'); Button_facil.fonsize = 15; Button_facil.color = (53, 184, 177)
+Button_medio = Button((166, 168, 172), 220, 575, 50, 15, '  Medio'); Button_medio.fonsize = 15
+Button_dificil = Button((166, 168, 172), 280, 575, 40, 15, '  Dificil'); Button_dificil.fonsize = 15
 
 # Dibujamos un cuadro azul sobre el cuadro en el cual queremos colocar un número
 def drawfocus(win,x, y):
@@ -186,14 +193,16 @@ def solve_sudoku(sudoku, sudoku_draw):
         if valid(sudoku, sudoku_draw, i, (row, col)):
             sudoku[row][col] = i
             sudoku_draw[row][col] = Number(i, 12 + col * 60, 12 + row * 60)
-            redrawGameWindow()
+            if steps:
+                redrawGameWindow()
             
             if solve_sudoku(sudoku, sudoku_draw):
                 return True
                 
             sudoku[row][col] = 0
             sudoku_draw[row][col] = Number(0, 12 + col * 60, 12 + row * 60)
-            redrawGameWindow()
+            if steps:
+                redrawGameWindow()
     
     return False
 
@@ -202,6 +211,16 @@ def clear_sudoku(sudoku, sudoku_draw):
         for j in range(len(sudoku[0])):
             sudoku[i][j] = 0
             sudoku_draw[i][j] = Number(0, 12 + 0 * 60, 12 + 0 * 60, Sudoku_draw[posicionx][posiciony].font)
+    print_actual_sudoku(sudoku, sudoku_draw)
+
+def generar_sudoku(sudoku, sudoku_draw, dificultad):
+    clear_sudoku(sudoku, sudoku_draw)
+    if dificultad == 2: # Dificultad 2 es Díficil
+        x, y = [randrange(0,8) for i in range(23)], [randrange(0,8) for i in range(23)] # Generamos 23 posiciones aleatorias
+        for i in range(len(x)):
+            aux = randrange(1,10)
+            sudoku[y[i]][x[i]] = aux
+            sudoku_draw[y[i]][x[i]] = Number(aux, 12 + x[i] * 60 , 12 + y[i] * 60,pygame.font.SysFont('Arial', 50, True))
     print_actual_sudoku(sudoku, sudoku_draw)
 
 def redrawGameWindow():
@@ -215,6 +234,11 @@ def redrawGameWindow():
 
     Button_Solve.draw(win, (255, 255, 255))
     Button_clear_sudoku.draw(win, (255, 255, 255))
+    Button_sbs.draw(win,(255 ,255, 255))
+    Button_generate.draw(win, (255, 255, 255))
+    Button_facil.draw(win, (255, 255, 255))
+    Button_medio.draw(win, (255, 255, 255))
+    Button_dificil.draw(win, (255, 255, 255))
 
     win.blit(tiempo.render(f"time:{horas}:{minutos}:{segundos}", True, (255, 255, 255)), (400, 555))
 
@@ -223,7 +247,6 @@ def redrawGameWindow():
 # Creamos el tablero de sudoku
 Sudoku = []
 Sudoku_draw = []
-available_numbers = []
 for _ in range(9):
     aux = []
     aux2 = []
@@ -299,7 +322,8 @@ for _ in range(1):
     print_actual_sudoku(Sudoku, Sudoku_draw)
 
 gaming = True
-
+steps = False
+Dificultad = 0
 #Creamos una nueva fuente para colocar el tiempo
 timer = pygame.time.set_timer(pygame.USEREVENT, 1000)
 segundos, minutos, horas = 0, 0, 0
@@ -327,14 +351,36 @@ while gaming:
         if eventos.type == pygame.MOUSEBUTTONDOWN:
             if Button_Solve.isOver(pos):
                 solve_sudoku(Sudoku, Sudoku_draw)
-            if Button_clear_sudoku.isOver(pos):
+            elif Button_clear_sudoku.isOver(pos):
                 clear_sudoku(Sudoku, Sudoku_draw)
                 segundos, minutos, horas = 0, 0, 0
+            elif Button_sbs.isOver(pos):
+                steps = True if steps == False else False
+                Button_sbs.text = 'Steps ON' if steps == True else 'Steps Off'
+            elif Button_generate.isOver(pos):
+                generar_sudoku(Sudoku, Sudoku_draw, Dificultad)
+            elif Button_facil.isOver(pos):
+                Dificultad = 0
+                Button_facil.color = (53, 184, 177)
+                Button_medio.color = (166, 168, 173)
+                Button_dificil.color = (166, 168, 173)
+            elif Button_medio.isOver(pos):
+                Dificultad = 1
+                Button_facil.color = (166, 168, 173)
+                Button_medio.color = (53, 184, 177)
+                Button_dificil.color = (166, 168, 173)
+            elif Button_dificil.isOver(pos):
+                Dificultad = 2
+                Button_facil.color = (166, 168, 173)
+                Button_medio.color = (166, 168, 173)
+                Button_dificil.color = (53, 184, 177)
 
         if eventos.type == pygame.MOUSEMOTION:
             Button_Solve.color = (255, 168, 173) if Button_Solve.isOver(pos) else (166, 168, 173) 
             Button_clear_sudoku.color = (255, 168, 173) if Button_clear_sudoku.isOver(pos) else (166, 168, 173)
-
+            Button_sbs.color = (255, 168, 173) if Button_sbs.isOver(pos) else (166, 168, 173)
+            Button_generate.color = (255, 168, 173) if Button_generate.isOver(pos) else (166, 168, 173)
+            
 
     #### Validamos si se está capturando una tecla
 
